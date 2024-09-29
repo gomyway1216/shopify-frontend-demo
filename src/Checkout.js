@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { CartContext } from './CartProvider';
 import { getServerUrl } from './apiRouter';
 
-const Checkout = ({ carts }) => {
+const Checkout = () => {
+  const { carts } = useContext(CartContext); // Use CartContext to get carts
   const [buyerIdentity, setBuyerIdentity] = useState({
     email: '',
     phone: '',
@@ -10,7 +12,7 @@ const Checkout = ({ carts }) => {
     deliveryMethod: '',
     pickupHandle: ''
   });
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setBuyerIdentity(prev => ({ ...prev, [name]: value }));
@@ -18,6 +20,7 @@ const Checkout = ({ carts }) => {
 
   const handleUpdateBuyerIdentity = async (cartId, shopName) => {
     try {
+      // Update Buyer Identity
       const response = await axios.post(getServerUrl('updateCartBuyerIdentity'), {
         shopName,
         cartId,
@@ -34,31 +37,82 @@ const Checkout = ({ carts }) => {
         }
       });
 
-      console.log('Buyer Identity Update Response:', response);
-      alert('Buyer identity updated successfully!');
+      if (response.status >= 200 && response.status < 300) {
+        console.log('Buyer identity updated successfully!');
+
+        // Now call getCheckoutURL to get the checkout URL
+        const checkoutResponse = await axios.get(getServerUrl('getCheckoutURL'), {
+          params: { shopName, cartId }
+        });
+
+        const checkoutUrl = checkoutResponse.data.data.cart.checkoutUrl;
+        console.log('Checkout URL:', checkoutUrl);
+
+        // Redirect the user to the checkout URL
+        window.location.href = checkoutUrl;
+      } else {
+        alert('Error updating buyer identity. Please try again.');
+      }
     } catch (error) {
-      console.error('Error updating buyer identity:', error);
-      alert('Error updating buyer identity');
+      console.error('Error updating buyer identity or getting checkout URL:', error);
+      alert('Error processing request. Please try again.');
     }
   };
+
+  // Aggregate the cart items similar to what we did in Navbar
+  const aggregateCartItems = () => {
+    const itemsMap = {};
+    let totalPrice = 0;
+
+    Object.values(carts).forEach(cart => {
+      cart.lines?.edges.forEach(({ node }) => {
+        const productId = node.merchandise.product.id;
+        const productTitle = node.merchandise.product.title;
+        const quantity = node.quantity;
+        const price = parseFloat(node.merchandise.product.priceRange.minVariantPrice.amount);
+
+        totalPrice += price * quantity;
+
+        // Aggregate items by productId
+        if (itemsMap[productId]) {
+          itemsMap[productId].quantity += quantity;
+        } else {
+          itemsMap[productId] = {
+            title: productTitle,
+            quantity,
+            price,
+          };
+        }
+      });
+    });
+
+    return { itemsMap, totalPrice };
+  };
+
+  const { itemsMap, totalPrice } = aggregateCartItems();
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Checkout</h1>
-      
+
       {/* Display cart items */}
-      {Object.entries(carts).map(([shopName, shopCart]) => (
-        <div key={shopName} className="mb-4">
-          <h3 className="text-xl font-semibold mb-2">{shopName}</h3>
+      {Object.keys(itemsMap).length > 0 ? (
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold mb-2">Your Cart</h3>
           <ul className="list-disc pl-6">
-            {shopCart.lines?.edges?.map(({ node }) => (
-              <li key={node.id} className="mb-1">
-                {node.merchandise.product.title} - Price: ${node.merchandise.product.priceRange.minVariantPrice.amount} - Quantity: {node.quantity}
+            {Object.values(itemsMap).map((item, index) => (
+              <li key={index} className="mb-1">
+                {item.title} - Price: ${item.price.toFixed(2)} - Quantity: {item.quantity}
               </li>
             ))}
           </ul>
+          <div className="mt-4">
+            <p className="text-lg font-bold">Total Price: ${totalPrice.toFixed(2)}</p>
+          </div>
         </div>
-      ))}
+      ) : (
+        <p>Your cart is empty.</p>
+      )}
 
       {/* Buyer Identity Form */}
       <div className="mt-6">
@@ -90,52 +144,61 @@ const Checkout = ({ carts }) => {
 
           <div className="mb-4">
             <label className="block text-gray-700">Country Code</label>
-            <input
-              type="text"
+            <select
               name="countryCode"
               value={buyerIdentity.countryCode}
               onChange={handleChange}
               className="w-full px-4 py-2 border rounded-md"
               required
-            />
-          </div>
+            >
+              <option value="">Select Country Code</option>
+              {["AF", "AX", "AL", "DZ", "AD", "AO", "AI", "AG", "AR", "AM", "AW", "AC", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "KH", "CA", "CV", "BQ", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "HR", "CU", "CW", "CY", "CZ", "CI", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE", "SZ", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "XK", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MG", "MW", "MY", "MV", "ML", "MT", "MQ", "MR", "MU", "YT", "MX", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "AN", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MK", "NO", "OM", "PK", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "QA", "CM", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "KR", "SS", "ES", "LK", "VC", "SD", "SR", "SJ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TA", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "WF", "EH", "YE", "ZM", "ZW", "ZZ"].map(code => (
+                <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700">Delivery Method</label>
-            <input
-              type="text"
-              name="deliveryMethod"
-              value={buyerIdentity.deliveryMethod}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700">Pickup Handle</label>
-            <input
-              type="text"
-              name="pickupHandle"
-              value={buyerIdentity.pickupHandle}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md"
-            />
-          </div>
-        </form>
-        
-        {/* Update Buyer Identity Button */}
-        {Object.entries(carts).map(([shopName, shopCart]) => (
-          <button
-            key={shopCart.id}
-            onClick={() => handleUpdateBuyerIdentity(shopCart.id, shopName)}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-4"
+        <div className="mb-4">
+          <label className="block text-gray-700">Delivery Method</label>
+          <select
+            name="deliveryMethod"
+            value={buyerIdentity.deliveryMethod}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border rounded-md"
           >
-            Update Buyer Identity for {shopName}
-          </button>
-        ))}
-      </div>
+            <option value="">Select Delivery Method</option>
+            {["SHIPPING", "PICK_UP", "PICKUP_POINT"].map(method => (
+              <option key={method} value={method}>{method}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700">Pickup Handle</label>
+          <input
+            type="text"
+            name="pickupHandle"
+            value={buyerIdentity.pickupHandle}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border rounded-md"
+          />
+        </div>
+      </form>
+
+      {/* Proceed to Checkout Button */}
+      {Object.entries(carts).map(([shopName, shopCart]) => (
+        <button
+          key={shopCart.id}
+          onClick={() => handleUpdateBuyerIdentity(shopCart.id, shopName)}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-4"
+        >
+          Proceed to Checkout for {shopName}
+        </button>
+      ))}
     </div>
-  );
+  </div>
+);
 };
 
 export default Checkout;
+

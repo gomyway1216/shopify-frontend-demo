@@ -1,12 +1,18 @@
 import React, { useContext, useState } from 'react';
 import { CartContext } from './CartProvider';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const { carts } = useContext(CartContext); // Access carts from context
+  const { carts } = useContext(CartContext);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const navigate = useNavigate(); // Use navigate hook for programmatic navigation
 
   const toggleCartDialog = () => {
     setIsCartOpen(!isCartOpen);
+  };
+
+  const handleCheckout = () => {
+    navigate('/checkout'); // Navigate to the checkout page
   };
 
   // Helper function to aggregate cart items and count quantities
@@ -22,10 +28,8 @@ const Navbar = () => {
         const quantity = node.quantity;
         const price = parseFloat(node.merchandise.product.priceRange.minVariantPrice.amount);
 
-        // Update the total price of the entire cart
         totalPrice += price * quantity;
 
-        // Check if product is already added to the map, then aggregate the quantities
         if (itemsMap[productId]) {
           itemsMap[productId].quantity += quantity;
         } else {
@@ -36,7 +40,6 @@ const Navbar = () => {
           };
         }
 
-        // Update the total cart count
         totalCartCount += quantity;
       });
     });
@@ -44,10 +47,7 @@ const Navbar = () => {
     return { itemsMap, totalCartCount, totalPrice };
   };
 
-  // Get the aggregated cart items
   const { itemsMap, totalCartCount, totalPrice } = aggregateCartItems();
-
-  console.log('carts', carts);
 
   return (
     <nav className="bg-gray-800 p-4 flex justify-between items-center">
@@ -88,9 +88,12 @@ const Navbar = () => {
               >
                 Close
               </button>
-              <a href="/checkout" className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+              <button
+                onClick={handleCheckout}
+                className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+              >
                 Go to Checkout
-              </a>
+              </button>
             </div>
           </div>
         </div>
