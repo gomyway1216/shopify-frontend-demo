@@ -3,7 +3,7 @@ import { CartContext } from './CartProvider';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const { carts } = useContext(CartContext);
+  const { carts, clearCart } = useContext(CartContext); // Access clearCart from context
   const [isCartOpen, setIsCartOpen] = useState(false);
   const navigate = useNavigate(); // Use navigate hook for programmatic navigation
 
@@ -22,6 +22,9 @@ const Navbar = () => {
     let totalPrice = 0;
 
     Object.values(carts).forEach(cart => {
+        if(!cart.lines || cart.lines.length === 0) {
+            return;
+        }
       cart.lines?.edges.forEach(({ node }) => {
         const productId = node.merchandise.product.id;
         const productTitle = node.merchandise.product.title;
@@ -93,6 +96,12 @@ const Navbar = () => {
                 className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
               >
                 Go to Checkout
+              </button>
+              <button
+                onClick={clearCart} // Trigger clearCart function to clear the cart
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ml-4"
+              >
+                Clear Cart
               </button>
             </div>
           </div>

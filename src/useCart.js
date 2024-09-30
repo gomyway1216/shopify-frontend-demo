@@ -73,9 +73,21 @@ export const useCart = () => {
     }));
   };
 
+  // Clear cart function
+  const clearCart = () => {
+    // Remove cart info from localStorage
+    localStorage.removeItem('cartId');
+    localStorage.removeItem('shopName');
+    // Reset state
+    setCarts({});
+    setCartId(null);
+    setShopName(null);
+  };
+
   return {
     carts,
     addToCart,
-    fetchCartInfo
+    fetchCartInfo,
+    clearCart // Expose clearCart function
   };
 };
