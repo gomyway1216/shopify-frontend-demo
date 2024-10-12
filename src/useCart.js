@@ -53,7 +53,7 @@ export const useCart = () => {
     }
   };
 
-  const addToCart = async (product) => {
+  const addToCart = async (product, quantity) => {
     let cartId = carts[product.vendor]?.id;
     if (!cartId) {
       cartId = await createCart(product.vendor);
@@ -64,7 +64,7 @@ export const useCart = () => {
     const response = await axios.post(getServerUrl('addCartLines'), {
       shopName: product.vendor,
       cartId: cartId,
-      lines: [{ quantity: 1, merchandiseId: variantId }]
+      lines: [{ quantity: quantity, merchandiseId: variantId }]
     });
 
     setCarts(prevCarts => ({
