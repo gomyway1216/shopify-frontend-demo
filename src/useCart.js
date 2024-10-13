@@ -23,7 +23,10 @@ export const useCart = () => {
       console.log('fetchCartInfo response', response);
       setCarts(prevCarts => ({
         ...prevCarts,
-        [shopName]: response.data.data.cart
+        [shopName]: {
+          ...response.data.data.cart,
+          shopName: shopName
+        }
       }));
     } catch (error) {
       console.error('Error fetching cart info:', error);
@@ -69,7 +72,10 @@ export const useCart = () => {
 
     setCarts(prevCarts => ({
       ...prevCarts,
-      [product.vendor]: response.data.data.cartLinesAdd.cart
+      [product.vendor]: {
+        ...response.data.data.cartLinesAdd.cart,
+        shopName: product.vendor
+      }
     }));
   };
 
